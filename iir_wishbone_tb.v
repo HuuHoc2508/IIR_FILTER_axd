@@ -42,6 +42,7 @@ module iir_wishbone_tb;
   // Variables for file reading
   integer file, r;
   reg signed [DATA_WIDTH-1:0] file_value;
+  reg signed [DATA_WIDTH-1:0] read_data;  // Biến lưu dữ liệu đọc từ bus
 
   // Wishbone write task
   task wishbone_write(input [ADDR_WIDTH-1:0] addr, input [DATA_WIDTH-1:0] data);
@@ -57,6 +58,7 @@ module iir_wishbone_tb;
     wb_stb_i <= 0;
     wb_cyc_i <= 0;
     wb_we_i  <= 0;
+    wb_dat_i <= 0;
   end
   endtask
 
@@ -90,12 +92,6 @@ module iir_wishbone_tb;
     repeat(5) @(posedge wb_clk_i);
     wb_rst_i = 0;
 
-    // Optionally: write coefficients if want to override defaults
-    // For example: 
-    // wishbone_write(6'h00, 5509);   // b0_s1
-    // wishbone_write(6'h04, 11019);  // b1_s1
-    // ...
-
     // Open input file
     file = $fopen("D:/input_data.txt", "r");
     if (file == 0) begin
@@ -109,17 +105,17 @@ module iir_wishbone_tb;
     while (!$feof(file)) begin
       r = $fscanf(file, "%d\n", file_value);
       if (r == 1) begin
-        // Write input value to ADDR_X
+        // Write input value to ADDR_X (6'h3C)
         wishbone_write(6'h3C, file_value);
 
         // Small delay to allow filter computation
         repeat(2) @(posedge wb_clk_i);
 
-        // Read output value from ADDR_Y
-        wishbone_read(6'h40, wb_dat_i);
+        // Read output value from ADDR_Y (6'h40)
+        wishbone_read(6'h40, read_data);
 
         // Display input and output
-        $display("Input: %d, Output: %d", file_value, wb_dat_i);
+        $display("Input: %d, Output: %d", file_value, read_data);
       end else begin
         $display("Warning: Failed to read input value");
       end
